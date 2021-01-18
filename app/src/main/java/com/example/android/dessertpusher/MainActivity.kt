@@ -30,6 +30,9 @@ import timber.log.Timber
 
 class MainActivity : AppCompatActivity(), LifecycleObserver {
 
+    private val REVENUE_KEY = "revenue"
+    private val TIMER_KEY = "timer"
+    private val DESSERTS_SOLD_KEY = "desserts sold"
     private var revenue = 0
     private var dessertsSold = 0
     private lateinit var binding: ActivityMainBinding
@@ -53,10 +56,16 @@ class MainActivity : AppCompatActivity(), LifecycleObserver {
             Dessert(R.drawable.oreo, 6000, 20000)
     )
     private var currentDessert = allDesserts[0]
-    private lateinit var timer : DessertTimer
+    private lateinit var timer: DessertTimer
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        timer = DessertTimer(this.lifecycle)
+        savedInstanceState?.let { state ->
+            revenue = state.getInt(REVENUE_KEY, 0)
+            timer.secondsCount = state.getInt(TIMER_KEY, 0)
+            dessertsSold = state.getInt(DESSERTS_SOLD_KEY, 0)
+        }
         Timber.i("Activity created")
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
@@ -70,13 +79,20 @@ class MainActivity : AppCompatActivity(), LifecycleObserver {
 
         // Make sure the correct dessert is showing
         binding.dessertButton.setImageResource(currentDessert.imageId)
-        timer = DessertTimer()
+
     }
 
     override fun onStart() {
         super.onStart()
         Timber.i("Activity started")
-        timer.startTimer()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(REVENUE_KEY, revenue)
+        outState.putInt(TIMER_KEY, timer.secondsCount)
+        outState.putInt(DESSERTS_SOLD_KEY, dessertsSold)
+        Timber.i("onSavedInstanceState")
     }
 
     override fun onResume() {
@@ -101,7 +117,6 @@ class MainActivity : AppCompatActivity(), LifecycleObserver {
 
     override fun onStop() {
         Timber.i("Activity stopped")
-        timer.stopTimer()
         super.onStop()
     }
 
@@ -118,8 +133,7 @@ class MainActivity : AppCompatActivity(), LifecycleObserver {
         for (dessert in allDesserts) {
             if (dessertsSold >= dessert.startProductionAmount) {
                 newDessert = dessert
-            }
-            else break
+            } else break
         }
 
         if (newDessert != currentDessert) {
